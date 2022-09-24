@@ -70,7 +70,8 @@ class GGMapDecoder extends Converter<Uint8List, Map<String, dynamic>> {
     final nPairs = _input.readUint32();
     var map = <String, dynamic>{};
     for (var i = 0; i < nPairs; i++) {
-      final key = _readString(_input.readUint32());
+      //final key = _readString(_input.readUint32());
+      final key = _readString(_input.readUint8());
       final value = _readValue();
       map[key] = value;
     }
@@ -91,7 +92,8 @@ class GGMapDecoder extends Converter<Uint8List, Map<String, dynamic>> {
       charCodes.add(c);
     } while (true);
     _input.seek(pos);
-    return String.fromCharCodes(charCodes);
+    var str = String.fromCharCodes(charCodes);
+    return str;
   }
 
   dynamic _readValue() {
@@ -107,13 +109,15 @@ class GGMapDecoder extends Converter<Uint8List, Map<String, dynamic>> {
         return _readArray();
       case Markers.String:
         {
-          final ploIdx = _input.readUint32();
+          //final ploIdx = _input.readUint32();
+          final ploIdx = _input.readUint8();
           return _readString(ploIdx);
         }
       case Markers.Integer:
       case Markers.Double:
         {
-          final ploIdx = _input.readUint32();
+          //final ploIdx = _input.readUint32();
+          final ploIdx = _input.readUint8();
           final num_str = _readString(ploIdx);
           if (type == Markers.Integer) {
             return int.parse(num_str);

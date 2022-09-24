@@ -8,6 +8,7 @@ environment:
 
 dependencies:
   args: ^2.0.0
+  dcli: ^1.34.0
   glob: ^2.0.0
   path: ^1.8.0
   universal_io: ^2.0.1

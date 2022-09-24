@@ -1,6 +1,9 @@
 import 'dart:collection';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
+import 'package:dcli/dcli.dart';
+import "package:path/path.dart" show dirname, join;
 
 /// Xor key used to encode/decode ggpack files.
 class XorKey {
@@ -22,6 +25,7 @@ enum KnownXorKeyId {
   Key5bad,
   Key56ad,
   Delores,
+  RtMI,
 }
 
 /// An instance of the default implementation of the [KnownXorKeys].
@@ -167,6 +171,12 @@ class KnownXorKeys extends IterableBase<XorKey> {
           0xC6,
         ],
         0x6D),
+    XorKey(
+        'RtMI',
+        [
+          0x00,
+        ],
+        0x00),
   ];
 
   const KnownXorKeys();
@@ -196,6 +206,8 @@ class KnownXorKeys extends IterableBase<XorKey> {
         return '56ad';
       case KnownXorKeyId.Delores:
         return 'delores';
+      case KnownXorKeyId.RtMI:
+        return 'RtMI';
       default:
         throw ArgumentError.value(keyId);
     }
@@ -210,14 +222,38 @@ class XorDecoder extends Converter<Uint8List, Uint8List> {
 
   @override
   Uint8List convert(Uint8List data) {
-    var builder = BytesBuilder();
-    var previous = data.length & 0xFF;
-    for (var i = 0; i < data.length; ++i) {
-      var x = data[i] ^ key.magicBytes[i & 0x0F] ^ (i * key.multiplier);
-      builder.addByte(x ^ previous);
-      previous = x;
+    if (key.friendlyName == "RtMI"){
+      var cur_path = DartScript.self.pathToScriptDirectory;
+      
+      final arr1 = File(join(dirname(cur_path), 'RtMI/arr1.bin')).readAsBytesSync();
+      final arr2 = File(join(dirname(cur_path), 'RtMI/arr2.bin')).readAsBytesSync();
+
+      var builder = BytesBuilder();
+      
+      var length = data.length;
+
+      var key_idx = (length + 0x78) & 0xFFFF;
+      var pointer = 0;  
+
+      while (length != 0){
+        var x = data[pointer] ^ arr1[(key_idx + 0x78) & 0xFF] ^ arr2[key_idx];
+        key_idx = (key_idx + (arr1[key_idx & 0xFF] & 0xFF)) & 0xFFFF; 
+        length -= 1;
+        pointer += 1;
+        builder.addByte(x);
+      }
+      return builder.toBytes();
     }
-    return builder.toBytes();
+    else {
+      var builder = BytesBuilder();
+      var previous = data.length & 0xFF;
+      for (var i = 0; i < data.length; ++i) {
+        var x = data[i] ^ key.magicBytes[i & 0x0F] ^ (i * key.multiplier);
+        builder.addByte(x ^ previous);
+        previous = x;
+      }
+      return builder.toBytes();
+    }
   }
 }
 
